@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: redhood-api
+    env: node
+    buildCommand: npm install
+    startCommand: node src/server.js
+    envVars:
+      - key: DB_HOST
+        sync: false
+      - key: DB_USER
+        sync: false
+      - key: DB_PASSWORD
+        sync: false
+      - key: DB_NAME
+        sync: false
+      - key: DB_PORT
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: PORT
+        value: 3000
+      - key: FRONTEND_URL
+        value: https://gustasky.github.io/RedHood 
