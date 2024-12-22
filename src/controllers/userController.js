@@ -70,64 +70,77 @@ const userController = {
         }
     },
 
-    // Login com mensagens de erro mais específicas
+    // Login atualizado com mais logs
     async login(req, res) {
         try {
+            console.log('Iniciando login...');
             const { email, senha } = req.body;
 
+            console.log('Dados recebidos:', { email, senhaLength: senha?.length });
+
+            if (!email || !senha) {
+                return res.status(400).json({
+                    error: 'missing_fields',
+                    message: 'Email e senha são obrigatórios'
+                });
+            }
+
             // Busca usuário
+            console.log('Buscando usuário...');
             const [users] = await connection.execute(
                 'SELECT * FROM usuarios WHERE email = ?',
                 [email]
             );
 
-            const user = users[0];
+            console.log('Usuários encontrados:', users.length);
 
-            // Verifica se o usuário existe
+            const user = users[0];
             if (!user) {
-                return res.status(404).json({ 
+                return res.status(404).json({
                     error: 'user_not_found',
                     message: 'Usuário não encontrado'
                 });
             }
 
             // Verifica a senha
+            console.log('Verificando senha...');
             const senhaValida = await bcrypt.compare(senha, user.senha);
+            
             if (!senhaValida) {
-                return res.status(401).json({ 
+                return res.status(401).json({
                     error: 'invalid_password',
                     message: 'Senha incorreta'
                 });
             }
 
-            // Se chegou aqui, usuário e senha estão corretos
+            console.log('Senha válida, gerando token...');
+            
+            // Gera o token
             const token = jwt.sign(
-                { 
-                    id: user.id, 
+                {
+                    id: user.id,
                     email: user.email,
-                    admin: user.admin 
+                    admin: user.admin
                 },
                 process.env.JWT_SECRET,
                 { expiresIn: '24h' }
             );
 
-            // Retorna os dados do usuário (exceto a senha)
-            res.json({ 
+            console.log('Login realizado com sucesso');
+
+            // Remove a senha antes de enviar
+            const { senha: _, ...userWithoutPassword } = user;
+
+            res.json({
                 token,
-                user: {
-                    id: user.id,
-                    nome: user.nome,
-                    email: user.email,
-                    admin: user.admin,
-                    pin: user.pin,
-                    data_nascimento: user.data_nascimento
-                }
+                user: userWithoutPassword
             });
         } catch (error) {
             console.error('Erro no login:', error);
-            res.status(500).json({ 
+            res.status(500).json({
                 error: 'server_error',
-                message: 'Erro interno do servidor'
+                message: 'Erro interno do servidor',
+                details: error.message
             });
         }
     },
