@@ -10,11 +10,11 @@ const resetDatabase = async () => {
     });
 
     try {
-        // Drop tabelas existentes
+        // Drop todas as tabelas existentes
         await connection.execute('DROP TABLE IF EXISTS usuarios');
         console.log('✅ Tabela usuarios removida');
 
-        // Recriar tabelas
+        // Recriar tabela usuarios
         await connection.execute(`
             CREATE TABLE usuarios (
                 id INT AUTO_INCREMENT PRIMARY KEY,
