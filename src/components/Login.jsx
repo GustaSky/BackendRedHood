@@ -2,41 +2,92 @@ import React, { useState } from 'react';
 import { authService } from '../services/auth';
 
 function Login() {
-    const [email, setEmail] = useState('');
-    const [senha, setSenha] = useState('');
+    const [formData, setFormData] = useState({
+        email: '',
+        senha: ''
+    });
     const [error, setError] = useState('');
+
+    const handleChange = (e) => {
+        const { name, value } = e.target;
+        setFormData({
+            ...formData,
+            [name]: value
+        });
+    };
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         try {
-            const response = await authService.login({ email, senha });
-            console.log('Login realizado com sucesso:', response);
-            // Redirecionar ou atualizar estado da aplicação
-            window.location.href = '/dashboard';
+            const loginData = {
+                email: formData.email,
+                senha: formData.senha
+            };
+
+            console.log('Tentando login com:', { email: loginData.email, senha: '***' });
+
+            const response = await fetch('https://redhood-api-production.up.railway.app/api/users/login', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(loginData)
+            });
+
+            const data = await response.json();
+            console.log('Resposta do login:', data);
+
+            if (response.status === 404) {
+                alert('Usuário não encontrado');
+                return;
+            }
+
+            if (response.status === 401) {
+                alert('Senha incorreta');
+                return;
+            }
+
+            if (!response.ok) {
+                throw new Error(data.message || 'Erro ao fazer login');
+            }
+
+            // Login bem sucedido
+            if (data.token) {
+                localStorage.setItem('token', data.token);
+                localStorage.setItem('user', JSON.stringify(data.user));
+                alert('Login realizado com sucesso!');
+                // Limpa o formulário
+                setFormData({
+                    email: '',
+                    senha: ''
+                });
+                // Redireciona ou atualiza o estado da aplicação
+                window.location.href = '/dashboard';
+            }
         } catch (error) {
-            setError(error.error || 'Erro ao fazer login');
+            console.error('Erro no login:', error);
+            alert('Erro ao fazer login. Por favor, tente novamente.');
         }
     };
 
     return (
         <form onSubmit={handleSubmit}>
-            <div>
-                <label>Email:</label>
-                <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                />
-            </div>
-            <div>
-                <label>Senha:</label>
-                <input
-                    type="password"
-                    value={senha}
-                    onChange={(e) => setSenha(e.target.value)}
-                />
-            </div>
-            {error && <div style={{color: 'red'}}>{error}</div>}
+            <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                value={formData.email}
+                onChange={handleChange}
+                required
+            />
+            <input
+                type="password"
+                name="senha"
+                placeholder="Senha"
+                value={formData.senha}
+                onChange={handleChange}
+                required
+            />
             <button type="submit">Entrar</button>
         </form>
     );
