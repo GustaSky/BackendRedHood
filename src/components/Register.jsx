@@ -1,14 +1,34 @@
 import React, { useState } from 'react';
-import { authService } from '../services/auth';
 
 function Register() {
     const [formData, setFormData] = useState({
         nome: '',
         email: '',
         senha: '',
-        pin: ''
+        data_nascimento: ''
     });
-    const [error, setError] = useState('');
+
+    const handleSubmit = async (e) => {
+        e.preventDefault();
+        try {
+            const response = await fetch('https://redhood-api-production.up.railway.app/api/users/register', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(formData)
+            });
+
+            const data = await response.json();
+            
+            if (data.pin) {
+                alert(`Cadastro realizado com sucesso! Seu PIN é: ${data.pin}`);
+            }
+        } catch (error) {
+            console.error('Erro no cadastro:', error);
+            alert('Erro ao fazer cadastro');
+        }
+    };
 
     const handleChange = (e) => {
         setFormData({
@@ -17,58 +37,32 @@ function Register() {
         });
     };
 
-    const handleSubmit = async (e) => {
-        e.preventDefault();
-        try {
-            await authService.register(formData);
-            // Redirecionar para login após registro
-            window.location.href = '/login';
-        } catch (error) {
-            setError(error.error || 'Erro ao registrar');
-        }
-    };
-
     return (
         <form onSubmit={handleSubmit}>
-            <div>
-                <label>Nome:</label>
-                <input
-                    type="text"
-                    name="nome"
-                    value={formData.nome}
-                    onChange={handleChange}
-                />
-            </div>
-            <div>
-                <label>Email:</label>
-                <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                />
-            </div>
-            <div>
-                <label>Senha:</label>
-                <input
-                    type="password"
-                    name="senha"
-                    value={formData.senha}
-                    onChange={handleChange}
-                />
-            </div>
-            <div>
-                <label>PIN:</label>
-                <input
-                    type="text"
-                    name="pin"
-                    value={formData.pin}
-                    onChange={handleChange}
-                    maxLength="6"
-                />
-            </div>
-            {error && <div style={{color: 'red'}}>{error}</div>}
-            <button type="submit">Registrar</button>
+            <input
+                type="text"
+                name="nome"
+                placeholder="Nome"
+                onChange={handleChange}
+            />
+            <input
+                type="email"
+                name="email"
+                placeholder="Email"
+                onChange={handleChange}
+            />
+            <input
+                type="password"
+                name="senha"
+                placeholder="Senha"
+                onChange={handleChange}
+            />
+            <input
+                type="date"
+                name="data_nascimento"
+                onChange={handleChange}
+            />
+            <button type="submit">Cadastrar</button>
         </form>
     );
 }

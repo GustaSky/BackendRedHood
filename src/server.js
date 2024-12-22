@@ -16,19 +16,12 @@ app.use(cors({
     credentials: false
 }));
 
-// Middleware para logs
-app.use((req, res, next) => {
-    console.log(`${req.method} ${req.url}`);
-    next();
-});
-
 app.use(express.json());
 
 // Rotas
 app.use('/api/users', require('./routes/users'));
 app.use('/api/admin', require('./routes/admin'));
 
-// Rota de teste
 app.get('/', (req, res) => {
     res.json({ message: 'API funcionando!' });
 });
