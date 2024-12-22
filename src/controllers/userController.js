@@ -6,43 +6,66 @@ const userController = {
     // Registro de novo usuário
     async register(req, res) {
         try {
+            console.log('Iniciando registro...');
             const { nome, email, senha, data_nascimento } = req.body;
             
-            // Gera PIN aleatório de 6 dígitos
+            // Log dos dados recebidos
+            console.log('Dados recebidos:', {
+                nome,
+                email,
+                data_nascimento,
+                senhaLength: senha ? senha.length : 0
+            });
+
+            // Validações
+            if (!nome || !email || !senha || !data_nascimento) {
+                return res.status(400).json({
+                    error: 'Dados incompletos',
+                    message: 'Todos os campos são obrigatórios'
+                });
+            }
+
+            // Gera PIN
             const pin = Math.floor(100000 + Math.random() * 900000).toString();
-            
-            // Log para debug
-            console.log('Dados recebidos:', { nome, email, data_nascimento, pin });
-            
-            // Verifica se usuário já existe
+            console.log('PIN gerado:', pin);
+
+            // Verifica usuário existente
+            console.log('Verificando email existente...');
             const [existingUser] = await connection.execute(
                 'SELECT id FROM usuarios WHERE email = ?',
                 [email]
             );
 
             if (existingUser.length) {
-                return res.status(400).json({ error: 'Email já cadastrado' });
+                return res.status(400).json({ 
+                    error: 'email_exists',
+                    message: 'Email já cadastrado' 
+                });
             }
 
             // Hash da senha
+            console.log('Gerando hash da senha...');
             const hashedPassword = await bcrypt.hash(senha, 10);
 
-            // Insere novo usuário
+            // Insere usuário
+            console.log('Inserindo novo usuário...');
             await connection.execute(
                 'INSERT INTO usuarios (nome, email, senha, pin, data_nascimento) VALUES (?, ?, ?, ?, ?)',
                 [nome, email, hashedPassword, pin, data_nascimento]
             );
 
-            // Retorna sucesso incluindo o PIN gerado
+            console.log('Usuário registrado com sucesso!');
             res.status(201).json({ 
                 message: 'Usuário cadastrado com sucesso',
-                pin: pin // Retorna o PIN para o usuário
+                pin: pin
             });
         } catch (error) {
-            console.error('Erro ao cadastrar:', error);
+            console.error('Erro detalhado:', error);
+            console.error('Stack trace:', error.stack);
             res.status(500).json({ 
-                error: 'Erro ao cadastrar usuário',
-                details: error.message 
+                error: 'server_error',
+                message: 'Erro interno do servidor',
+                details: error.message
             });
         }
     },
