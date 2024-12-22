@@ -4,8 +4,12 @@ require('dotenv').config();
 
 const app = express();
 
-// CORS simplificado
-app.use(cors());
+// Configuração do CORS para desenvolvimento local
+app.use(cors({
+    origin: '*', // Permite todas as origens durante testes
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 app.use(express.json());
 
