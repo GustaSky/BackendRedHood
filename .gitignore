@@ -1,0 +1,15 @@
+# Dependências
+node_modules/
+
+# Variáveis de ambiente
+.env
+
+# Logs
+*.log
+
+# Arquivos do sistema
+.DS_Store
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local 
