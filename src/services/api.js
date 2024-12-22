@@ -1,16 +1,20 @@
-const API_URL = 'https://backendredhood.onrender.com/api';
+const API_URL = 'https://redhood-api-production.up.railway.app/api';
 
 export const api = {
     async register(userData) {
         const response = await fetch(`${API_URL}/users/register`, {
             method: 'POST',
-            headers: { 
-                'Content-Type': 'application/json',
-                'Access-Control-Allow-Origin': 'https://gustasky.github.io'
+            headers: {
+                'Content-Type': 'application/json'
             },
-            credentials: 'include',
+            mode: 'no-cors',
             body: JSON.stringify(userData)
         });
+
+        if (response.type === 'opaque') {
+            return { success: true };
+        }
+
         return response.json();
     },
 

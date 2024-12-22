@@ -1,49 +1,33 @@
-const mysql = require('mysql2/promise');
-const dbConfig = require('../config/database');
+const mysql = require('mysql2');
 
-const testConnection = async () => {
-    try {
-        const connection = await mysql.createConnection({
-            ...dbConfig,
-            database: null // Tenta conectar sem especificar o banco
-        });
-        
-        console.log('🟢 Conexão com MySQL estabelecida com sucesso!');
-        
-        // Tenta criar o banco se não existir
-        await connection.query(`CREATE DATABASE IF NOT EXISTS ${dbConfig.database}`);
-        await connection.query(`USE ${dbConfig.database}`);
-        
-        // Testa uma query simples
-        const [result] = await connection.query('SELECT 1 + 1 as test');
-        console.log('🟢 Teste de query:', result[0].test === 2 ? 'OK' : 'Falhou');
-        
-        // Verifica se as tabelas existem
-        const [tables] = await connection.query('SHOW TABLES');
-        console.log('📊 Tabelas encontradas:', tables.map(t => Object.values(t)[0]));
-        
-        await connection.end();
-        return true;
-    } catch (error) {
-        console.error('🔴 Erro na conexão:', error.message);
-        return false;
+// Criar conexão simples em vez de pool
+const connection = mysql.createConnection({
+    host: 'autorack.proxy.rlwy.net',
+    user: 'root',
+    password: 'OAKzWvPgHpIdBzZTGWREOElaVpWLqhpD',
+    database: 'railway',
+    port: 47222
+});
+
+// Conectar ao banco
+connection.connect(error => {
+    if (error) {
+        console.error('Erro ao conectar ao banco:', error);
+        return;
     }
-};
+    console.log('✅ Conectado ao banco de dados MySQL');
+});
 
-// Executa o teste de conexão
-testConnection().then(success => {
-    if (!success) {
-        console.error('🔴 Falha ao conectar ao banco de dados');
-        process.exit(1);
+// Reconectar se a conexão for perdida
+connection.on('error', function(err) {
+    console.log('Erro de banco:', err);
+    if (err.code === 'PROTOCOL_CONNECTION_LOST') {
+        console.log('Tentando reconectar...');
+        connection.connect();
+    } else {
+        throw err;
     }
 });
 
-// Cria o pool de conexões
-const pool = mysql.createPool(dbConfig);
-
-// Adiciona handler para erros de conexão
-pool.on('error', (err) => {
-    console.error('🔴 Erro no pool de conexões:', err);
-});
-
-module.exports = pool; 
+// Exportar conexão com promise
+module.exports = connection.promise(); 
