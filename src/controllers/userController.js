@@ -293,9 +293,19 @@ const userController = {
     async resetPassword(req, res) {
         let conn;
         try {
+            console.log('Iniciando reset de senha...');
             const { email, pin, newPassword } = req.body;
 
+            // Log dos dados recebidos (sem mostrar a senha)
+            console.log('Dados recebidos:', { email, pin, hasPassword: !!newPassword });
+
+            // Validação dos campos
             if (!email || !pin || !newPassword) {
+                console.log('Campos faltando:', { 
+                    hasEmail: !!email, 
+                    hasPin: !!pin, 
+                    hasPassword: !!newPassword 
+                });
                 return res.status(400).json({
                     error: 'missing_fields',
                     message: 'Email, PIN e nova senha são obrigatórios'
@@ -311,30 +321,49 @@ const userController = {
                 port: 47222
             });
 
-            // Verifica se o usuário existe e o PIN está correto
+            // Verifica se o usuário existe
+            console.log('Buscando usuário...');
             const [users] = await conn.execute(
-                'SELECT id FROM usuarios WHERE email = ? AND pin = ?',
-                [email, pin]
+                'SELECT * FROM usuarios WHERE email = ?',
+                [email]
             );
 
             if (!users.length) {
+                console.log('Usuário não encontrado');
+                return res.status(404).json({
+                    error: 'user_not_found',
+                    message: 'Usuário não encontrado'
+                });
+            }
+
+            const user = users[0];
+
+            // Verifica o PIN
+            if (user.pin !== pin) {
+                console.log('PIN inválido');
                 return res.status(401).json({
-                    error: 'invalid_credentials',
-                    message: 'Email ou PIN inválido'
+                    error: 'invalid_pin',
+                    message: 'PIN inválido'
                 });
             }
 
             // Hash da nova senha
+            console.log('Gerando hash da nova senha...');
             const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-            // Atualiza a senha
+            // Atualiza a senha e gera um novo PIN
+            const newPin = Math.floor(100000 + Math.random() * 900000).toString();
+            console.log('Atualizando senha e PIN...');
+            
             await conn.execute(
-                'UPDATE usuarios SET senha = ? WHERE id = ?',
-                [hashedPassword, users[0].id]
+                'UPDATE usuarios SET senha = ?, pin = ? WHERE id = ?',
+                [hashedPassword, newPin, user.id]
             );
 
+            console.log('Senha atualizada com sucesso');
             return res.json({
-                message: 'Senha atualizada com sucesso'
+                message: 'Senha atualizada com sucesso',
+                newPin // Envia o novo PIN para o usuário
             });
 
         } catch (error) {
