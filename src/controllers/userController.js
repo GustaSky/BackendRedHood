@@ -225,108 +225,129 @@ const userController = {
 
     // Adicionar novo método para verificação de PIN
     async verifyPin(req, res) {
+        let conn;
         try {
+            console.log('Iniciando verificação de PIN...');
             const { email, pin } = req.body;
 
-            // Busca usuário pelo email
-            const [users] = await connection.execute(
-                'SELECT id, pin, nome, admin FROM usuarios WHERE email = ?',
-                [email]
-            );
-
-            const user = users[0];
-
-            // Verifica se o usuário existe
-            if (!user) {
-                return res.status(404).json({
-                    error: 'user_not_found',
-                    message: 'Usuário não encontrado'
+            if (!email || !pin) {
+                return res.status(400).json({
+                    error: 'missing_fields',
+                    message: 'Email e PIN são obrigatórios'
                 });
             }
 
-            // Verifica se o PIN está correto
-            if (user.pin !== pin) {
+            // Cria uma nova conexão
+            conn = await mysql.createConnection({
+                host: 'autorack.proxy.rlwy.net',
+                user: 'root',
+                password: 'OAKzWvPgHpIdBzZTGWREOElaVpWLqhpD',
+                database: 'railway',
+                port: 47222
+            });
+
+            // Busca usuário pelo email e PIN
+            const [users] = await conn.execute(
+                'SELECT id, nome, email, pin FROM usuarios WHERE email = ? AND pin = ?',
+                [email, pin]
+            );
+
+            if (!users.length) {
                 return res.status(401).json({
                     error: 'invalid_pin',
-                    message: 'PIN incorreto'
+                    message: 'Email ou PIN inválido'
                 });
             }
 
-            // Se o PIN estiver correto, gera um token
+            // Gera um token temporário para reset de senha
             const token = jwt.sign(
                 {
-                    id: user.id,
-                    email: email,
-                    admin: user.admin
+                    id: users[0].id,
+                    email: users[0].email,
+                    purpose: 'reset_password'
                 },
-                process.env.JWT_SECRET,
-                { expiresIn: '24h' }
+                'sua_chave_secreta',
+                { expiresIn: '1h' }
             );
 
-            // Retorna sucesso com token e dados do usuário
-            res.json({
+            return res.json({
                 message: 'PIN verificado com sucesso',
-                token,
-                user: {
-                    id: user.id,
-                    nome: user.nome,
-                    email: email,
-                    admin: user.admin
-                }
+                token
             });
+
         } catch (error) {
-            console.error('Erro ao verificar PIN:', error);
-            res.status(500).json({
+            console.error('Erro na verificação do PIN:', error);
+            return res.status(500).json({
                 error: 'server_error',
-                message: 'Erro ao verificar PIN'
+                message: 'Erro ao verificar PIN',
+                details: error.message
             });
+        } finally {
+            if (conn) {
+                await conn.end();
+            }
         }
     },
 
     // Método para redefinir senha
     async resetPassword(req, res) {
+        let conn;
         try {
             const { email, pin, newPassword } = req.body;
-            
-            // Busca usuário pelo email
-            const [users] = await connection.execute(
-                'SELECT id, pin FROM usuarios WHERE email = ?',
-                [email]
-            );
 
-            const user = users[0];
-
-            if (!user) {
-                return res.status(404).json({
-                    error: 'user_not_found',
-                    message: 'Usuário não encontrado'
+            if (!email || !pin || !newPassword) {
+                return res.status(400).json({
+                    error: 'missing_fields',
+                    message: 'Email, PIN e nova senha são obrigatórios'
                 });
             }
 
-            if (user.pin !== pin) {
+            // Cria uma nova conexão
+            conn = await mysql.createConnection({
+                host: 'autorack.proxy.rlwy.net',
+                user: 'root',
+                password: 'OAKzWvPgHpIdBzZTGWREOElaVpWLqhpD',
+                database: 'railway',
+                port: 47222
+            });
+
+            // Verifica se o usuário existe e o PIN está correto
+            const [users] = await conn.execute(
+                'SELECT id FROM usuarios WHERE email = ? AND pin = ?',
+                [email, pin]
+            );
+
+            if (!users.length) {
                 return res.status(401).json({
-                    error: 'invalid_pin',
-                    message: 'PIN incorreto'
+                    error: 'invalid_credentials',
+                    message: 'Email ou PIN inválido'
                 });
             }
 
             // Hash da nova senha
             const hashedPassword = await bcrypt.hash(newPassword, 10);
 
-            await connection.execute(
+            // Atualiza a senha
+            await conn.execute(
                 'UPDATE usuarios SET senha = ? WHERE id = ?',
-                [hashedPassword, user.id]
+                [hashedPassword, users[0].id]
             );
 
-            res.json({
+            return res.json({
                 message: 'Senha atualizada com sucesso'
             });
+
         } catch (error) {
             console.error('Erro ao redefinir senha:', error);
-            res.status(500).json({
+            return res.status(500).json({
                 error: 'server_error',
-                message: 'Erro ao redefinir senha'
+                message: 'Erro ao redefinir senha',
+                details: error.message
             });
+        } finally {
+            if (conn) {
+                await conn.end();
+            }
         }
     }
 };
