@@ -17,25 +17,38 @@ function Register() {
                 return;
             }
 
-            console.log('Enviando dados:', {
+            // Formata a data para o formato do MySQL (YYYY-MM-DD)
+            const formattedData = {
                 ...formData,
-                senha: '***' // Não loga a senha
+                data_nascimento: new Date(formData.data_nascimento).toISOString().split('T')[0]
+            };
+
+            console.log('Enviando dados:', {
+                ...formattedData,
+                senha: '***'
             });
 
             const response = await fetch('https://redhood-api-production.up.railway.app/api/users/register', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
-                    'Accept': 'application/json'
+                    'Accept': 'application/json',
+                    'Origin': 'https://gustasky.github.io'
                 },
-                body: JSON.stringify(formData)
+                mode: 'cors',
+                body: JSON.stringify(formattedData)
             });
 
             const data = await response.json();
             console.log('Resposta do servidor:', data);
 
-            if (response.status === 400 && data.error === 'email_exists') {
-                alert('Este email já está cadastrado');
+            if (response.status === 400) {
+                alert(data.message || 'Erro nos dados fornecidos');
+                return;
+            }
+
+            if (response.status === 500) {
+                alert('Erro interno do servidor. Tente novamente mais tarde.');
                 return;
             }
 
@@ -45,7 +58,6 @@ function Register() {
 
             if (data.pin) {
                 alert(`Cadastro realizado com sucesso! Seu PIN é: ${data.pin}`);
-                // Limpa o formulário
                 setFormData({
                     nome: '',
                     email: '',
@@ -55,7 +67,7 @@ function Register() {
             }
         } catch (error) {
             console.error('Erro completo:', error);
-            alert(error.message || 'Erro ao fazer cadastro. Tente novamente.');
+            alert('Erro ao fazer cadastro. Por favor, tente novamente.');
         }
     };
 
