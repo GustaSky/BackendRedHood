@@ -1,4 +1,4 @@
-const API_URL = 'https://redhood-api.onrender.com/api';
+const API_URL = 'https://backendredhood.onrender.com/api';
 
 export const api = {
     async register(userData) {
@@ -8,6 +8,7 @@ export const api = {
                 'Content-Type': 'application/json',
                 'Access-Control-Allow-Origin': 'https://gustasky.github.io'
             },
+            credentials: 'include',
             body: JSON.stringify(userData)
         });
         return response.json();
