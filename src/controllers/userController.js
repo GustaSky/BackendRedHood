@@ -1,6 +1,7 @@
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const connection = require('../database/connection');
+const mysql = require('mysql2/promise');
 
 const userController = {
     // Registro de novo usuário
@@ -72,27 +73,26 @@ const userController = {
 
     // Login atualizado com mais logs
     async login(req, res) {
+        let conn;
         try {
             console.log('Iniciando login...');
             const { email, senha } = req.body;
 
-            console.log('Dados recebidos:', { email, senhaLength: senha?.length });
-
-            if (!email || !senha) {
-                return res.status(400).json({
-                    error: 'missing_fields',
-                    message: 'Email e senha são obrigatórios'
-                });
-            }
+            // Cria uma nova conexão para esta requisição
+            conn = await mysql.createConnection({
+                host: 'autorack.proxy.rlwy.net',
+                user: 'root',
+                password: 'OAKzWvPgHpIdBzZTGWREOElaVpWLqhpD',
+                database: 'railway',
+                port: 47222
+            });
 
             // Busca usuário
             console.log('Buscando usuário...');
-            const [users] = await connection.execute(
+            const [users] = await conn.execute(
                 'SELECT * FROM usuarios WHERE email = ?',
                 [email]
             );
-
-            console.log('Usuários encontrados:', users.length);
 
             const user = users[0];
             if (!user) {
@@ -103,9 +103,7 @@ const userController = {
             }
 
             // Verifica a senha
-            console.log('Verificando senha...');
             const senhaValida = await bcrypt.compare(senha, user.senha);
-            
             if (!senhaValida) {
                 return res.status(401).json({
                     error: 'invalid_password',
@@ -113,35 +111,34 @@ const userController = {
                 });
             }
 
-            console.log('Senha válida, gerando token...');
-            
             // Gera o token
             const token = jwt.sign(
                 {
                     id: user.id,
-                    email: user.email,
-                    admin: user.admin
+                    email: user.email
                 },
-                process.env.JWT_SECRET,
+                'sua_chave_secreta', // Chave fixa para teste
                 { expiresIn: '24h' }
             );
 
-            console.log('Login realizado com sucesso');
-
-            // Remove a senha antes de enviar
+            // Remove a senha do objeto do usuário
             const { senha: _, ...userWithoutPassword } = user;
 
-            res.json({
+            return res.json({
                 token,
                 user: userWithoutPassword
             });
         } catch (error) {
-            console.error('Erro no login:', error);
-            res.status(500).json({
+            console.error('Erro completo:', error);
+            return res.status(500).json({
                 error: 'server_error',
                 message: 'Erro interno do servidor',
                 details: error.message
             });
+        } finally {
+            if (conn) {
+                await conn.end();
+            }
         }
     },
 
