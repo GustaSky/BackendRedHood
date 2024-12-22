@@ -4,7 +4,10 @@ export const api = {
     async register(userData) {
         const response = await fetch(`${API_URL}/users/register`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': 'https://gustasky.github.io'
+            },
             body: JSON.stringify(userData)
         });
         return response.json();
@@ -13,7 +16,10 @@ export const api = {
     async login(credentials) {
         const response = await fetch(`${API_URL}/users/login`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 
+                'Content-Type': 'application/json',
+                'Access-Control-Allow-Origin': 'https://gustasky.github.io'
+            },
             body: JSON.stringify(credentials)
         });
         return response.json();

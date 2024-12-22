@@ -6,11 +6,7 @@ const app = express();
 
 // Middlewares
 app.use(cors({
-  origin: [
-    'https://gustasky.github.io',          // Domínio principal
-    'https://gustasky.github.io/RedHood',  // Caminho específico
-    'http://localhost:5500'                // Mantém local para desenvolvimento
-  ],
+  origin: 'https://gustasky.github.io',
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization']
